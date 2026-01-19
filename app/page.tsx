@@ -74,8 +74,9 @@ export default function Home() {
                 type="text"
                 placeholder="Digite sua mensagem"
                 value={input}
-                onChange={(event) => setInput(event.target.value)}
+                onChange={(e) => setInput(e.target.value)}
               />
+              <div>DEBUG INPUT VALUE: {input}</div>
               <button type="submit">Enviar</button>
             </form>
           </div>
