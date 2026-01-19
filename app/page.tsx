@@ -1,86 +1,91 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-type Message = {
-  id: string;
-  author: "user" | "lux";
-  text: string;
-};
-
-const LUX_REPLY =
-  "Oi! Eu sou a Lux. Me diga o que você quer comprar que eu te ajudo 🙂";
+type ChatMsg = { role: "user" | "lux"; text: string };
 
 export default function Home() {
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
 
-  const handleToggle = () => {
-    setIsChatOpen((prev) => !prev);
-  };
+  const statusText = useMemo(() => "Lux está online", []);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmed = input.trim();
-    if (!trimmed) return;
+  function send() {
+    const text = input.trim();
+    if (!text) return;
 
-    const userMessage: Message = {
-      id: `${Date.now()}-user`,
-      author: "user",
-      text: trimmed,
-    };
-
-    const luxMessage: Message = {
-      id: `${Date.now()}-lux`,
-      author: "lux",
-      text: LUX_REPLY,
-    };
-
-    setMessages((prev) => [...prev, userMessage, luxMessage]);
+    setMessages((prev) => [...prev, { role: "user", text }]);
     setInput("");
-  };
+
+    // resposta instantânea (Lux bebê)
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "lux",
+          text: "Oi! Eu sou a Lux. Me diga o que você quer comprar que eu te ajudo 🙂"
+        }
+      ]);
+    }, 150);
+  }
 
   return (
-    <main className="page">
-      <header className="hero">
-        <h1>LuxAI – Demo</h1>
-        <p>Lux está online</p>
-      </header>
+    <main className="container">
+      <div className="card">
+        <h1 style={{ margin: 0 }}>LuxAI – Demo</h1>
+        <p style={{ marginTop: 6, marginBottom: 14, opacity: 0.8 }}>
+          {statusText}
+        </p>
 
-      <section className="chat">
-        <button className="lux-button" type="button" onClick={handleToggle}>
-          Lux
-        </button>
+        <div className="row">
+          <button
+            className="luxBubble"
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Abrir Lux"
+            title="Abrir Lux"
+          >
+            Lux
+          </button>
 
-        {isChatOpen ? (
-          <div className="chat-panel" aria-live="polite">
+          <div style={{ opacity: 0.75 }}>
+            Clique na Lux para abrir o mini chat.
+          </div>
+        </div>
+
+        {open && (
+          <div className="chat">
             <div className="messages">
               {messages.length === 0 ? (
-                <p className="empty">Nenhuma mensagem ainda.</p>
+                <div style={{ opacity: 0.6, fontSize: 14 }}>
+                  Envie uma mensagem para ver a Lux responder.
+                </div>
               ) : (
-                messages.map((message) => (
+                messages.map((m, i) => (
                   <div
-                    key={message.id}
-                    className={`message ${message.author}`}
+                    key={i}
+                    className={`msg ${m.role === "user" ? "user" : "lux"}`}
                   >
-                    <span>{message.text}</span>
+                    {m.text}
                   </div>
                 ))
               )}
             </div>
-            <form className="composer" onSubmit={handleSubmit}>
+
+            <div className="composer">
               <input
-                type="text"
-                placeholder="Digite sua mensagem"
                 value={input}
-                onChange={(event) => setInput(event.target.value)}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Digite sua mensagem…"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") send();
+                }}
               />
-              <button type="submit">Enviar</button>
-            </form>
+              <button onClick={send}>Enviar</button>
+            </div>
           </div>
-        ) : null}
-      </section>
+        )}
+      </div>
     </main>
   );
 }
