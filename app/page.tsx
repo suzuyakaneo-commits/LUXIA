@@ -8,9 +8,6 @@ type Message = {
   text: string;
 };
 
-const LUX_REPLY =
-  "Oi! Eu sou a Lux. Me diga o que você quer comprar que eu te ajudo 🙂";
-
 export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -20,8 +17,7 @@ export default function Home() {
     setIsChatOpen((prev) => !prev);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const send = async () => {
     const trimmed = input.trim();
     if (!trimmed) return;
 
@@ -31,14 +27,47 @@ export default function Home() {
       text: trimmed,
     };
 
-    const luxMessage: Message = {
-      id: `${Date.now()}-lux`,
-      author: "lux",
-      text: LUX_REPLY,
-    };
-
-    setMessages((prev) => [...prev, userMessage, luxMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Falha ao responder");
+      }
+
+      const data = (await res.json()) as { reply?: string };
+      const reply =
+        data.reply ?? "Tive um branco aqui 😅 Pode repetir de outra forma?";
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-lux`,
+          author: "lux",
+          text: reply,
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-lux`,
+          author: "lux",
+          text: "Não consegui responder agora (falha de conexão). Tenta de novo 🙂",
+        },
+      ]);
+    }
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void send();
   };
 
   return (
