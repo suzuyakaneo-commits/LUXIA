@@ -21,9 +21,9 @@ export default function Home() {
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    console.log("HANDLE SUBMIT DISPAROU", input);
     event.preventDefault();
     const trimmed = input.trim();
-    if (!trimmed) return;
 
     const userMessage: Message = {
       id: `${Date.now()}-user`,
@@ -49,6 +49,9 @@ export default function Home() {
       </header>
 
       <section className="chat">
+        <div style={{ fontSize: 12, color: "red" }}>
+          DEBUG INPUT VALUE: {input}
+        </div>
         <button className="lux-button" type="button" onClick={handleToggle}>
           Lux
         </button>
@@ -74,7 +77,7 @@ export default function Home() {
                 type="text"
                 placeholder="Digite sua mensagem"
                 value={input}
-                onChange={(event) => setInput(event.target.value)}
+                onChange={(e) => setInput(e.target.value)}
               />
               <button type="submit">Enviar</button>
             </form>
