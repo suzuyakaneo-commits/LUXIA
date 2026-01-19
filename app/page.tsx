@@ -8,20 +8,38 @@ type Message = {
   text: string;
 };
 
-const LUX_REPLY =
-  "Oi! Eu sou a Lux. Me diga o que você quer comprar que eu te ajudo 🙂";
+type DebugState = {
+  lastUser: string;
+  lastStatus: string;
+  lastError: string;
+  lastRaw: string;
+  lastReply: string;
+};
 
 export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [debug, setDebug] = useState<DebugState>({
+    lastUser: "",
+    lastStatus: "",
+    lastError: "",
+    lastRaw: "",
+    lastReply: "",
+  });
 
   const handleToggle = () => {
     setIsChatOpen((prev) => !prev);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setDebug((prev) => ({
+      ...prev,
+      lastStatus: "submitting",
+      lastError: "",
+      lastUser: input,
+    }));
     const trimmed = input.trim();
     if (!trimmed) return;
 
@@ -31,14 +49,49 @@ export default function Home() {
       text: trimmed,
     };
 
-    const luxMessage: Message = {
-      id: `${Date.now()}-lux`,
-      author: "lux",
-      text: LUX_REPLY,
-    };
-
-    setMessages((prev) => [...prev, userMessage, luxMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        setDebug((prev) => ({
+          ...prev,
+          lastStatus: "error",
+          lastError: errorText,
+        }));
+        return;
+      }
+
+      const data = await res.json();
+      const text = data.reply ?? data.message ?? JSON.stringify(data);
+      setDebug((prev) => ({
+        ...prev,
+        lastStatus: "ok",
+        lastRaw: JSON.stringify(data, null, 2),
+        lastReply: text,
+      }));
+
+      const luxMessage: Message = {
+        id: `${Date.now()}-lux`,
+        author: "lux",
+        text,
+      };
+
+      setMessages((prev) => [...prev, luxMessage]);
+    } catch (err) {
+      setDebug((prev) => ({
+        ...prev,
+        lastStatus: "error",
+        lastError: String(err),
+      }));
+    }
   };
 
   return (
