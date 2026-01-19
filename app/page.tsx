@@ -15,30 +15,62 @@ export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [lastRaw, setLastRaw] = useState("");
+  const [lastReply, setLastReply] = useState("");
 
   const handleToggle = () => {
     setIsChatOpen((prev) => !prev);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = input.trim();
     if (!trimmed) return;
 
+    const now = Date.now();
     const userMessage: Message = {
-      id: `${Date.now()}-user`,
+      id: `${now}-user`,
       author: "user",
       text: trimmed,
     };
 
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+
+    let raw = "";
+    let replyText = LUX_REPLY;
+
+    try {
+      const response = await fetch("/api/lux", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: trimmed,
+        }),
+      });
+      raw = await response.text();
+      try {
+        const data = JSON.parse(raw) as { reply?: string; text?: string };
+        replyText = data.reply ?? data.text ?? raw ?? LUX_REPLY;
+      } catch {
+        replyText = raw || LUX_REPLY;
+      }
+    } catch (error) {
+      raw = error instanceof Error ? error.message : String(error);
+      replyText = LUX_REPLY;
+    }
+
     const luxMessage: Message = {
-      id: `${Date.now()}-lux`,
+      id: `${now}-lux`,
       author: "lux",
-      text: LUX_REPLY,
+      text: replyText,
     };
 
-    setMessages((prev) => [...prev, userMessage, luxMessage]);
-    setInput("");
+    setMessages((prev) => [...prev, luxMessage]);
+    setLastRaw(raw);
+    setLastReply(replyText);
   };
 
   return (
@@ -68,6 +100,14 @@ export default function Home() {
                   </div>
                 ))
               )}
+            </div>
+            <div className="debug">
+              <p>
+                <strong>lastRaw:</strong> {lastRaw || "-"}
+              </p>
+              <p>
+                <strong>lastReply:</strong> {lastReply || "-"}
+              </p>
             </div>
             <form className="composer" onSubmit={handleSubmit}>
               <input
