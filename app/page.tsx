@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Message = {
   id: string;
@@ -19,6 +19,23 @@ export default function Home() {
   const handleToggle = () => {
     setIsChatOpen((prev) => !prev);
   };
+
+  const handleClose = () => {
+    setIsChatOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isChatOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsChatOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isChatOpen]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -54,30 +71,50 @@ export default function Home() {
         </button>
 
         {isChatOpen ? (
-          <div className="chat-panel" aria-live="polite">
-            <div className="messages">
-              {messages.length === 0 ? (
-                <p className="empty">Nenhuma mensagem ainda.</p>
-              ) : (
-                messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`message ${message.author}`}
-                  >
-                    <span>{message.text}</span>
-                  </div>
-                ))
-              )}
+          <div className="chat-overlay" onClick={handleClose}>
+            <div
+              className="chat-drawer open"
+              onClick={(event) => event.stopPropagation()}
+              aria-live="polite"
+            >
+              <header className="chat-drawer__header">
+                <div>
+                  <h2>Lux</h2>
+                  <span className="status">online</span>
+                </div>
+                <button
+                  className="close-button"
+                  type="button"
+                  onClick={handleClose}
+                  aria-label="Fechar chat"
+                >
+                  ×
+                </button>
+              </header>
+              <div className="messages">
+                {messages.length === 0 ? (
+                  <p className="empty">Nenhuma mensagem ainda.</p>
+                ) : (
+                  messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`message ${message.author}`}
+                    >
+                      <span>{message.text}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <form className="composer" onSubmit={handleSubmit}>
+                <input
+                  type="text"
+                  placeholder="Digite sua mensagem"
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                />
+                <button type="submit">Enviar</button>
+              </form>
             </div>
-            <form className="composer" onSubmit={handleSubmit}>
-              <input
-                type="text"
-                placeholder="Digite sua mensagem"
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-              />
-              <button type="submit">Enviar</button>
-            </form>
           </div>
         ) : null}
       </section>
