@@ -8,19 +8,18 @@ type Message = {
   text: string;
 };
 
-const LUX_REPLY =
-  "Oi! Eu sou a Lux. Me diga o que você quer comprar que eu te ajudo 🙂";
-
 export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [debugReply, setDebugReply] = useState("");
+  const [debugRaw, setDebugRaw] = useState("");
 
   const handleToggle = () => {
     setIsChatOpen((prev) => !prev);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = input.trim();
     if (!trimmed) return;
@@ -31,14 +30,30 @@ export default function Home() {
       text: trimmed,
     };
 
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: trimmed }),
+    });
+
+    const data = await res.json();
+    const raw = JSON.stringify(data);
+    const text = data.reply ?? data.message ?? raw;
+
     const luxMessage: Message = {
       id: `${Date.now()}-lux`,
       author: "lux",
-      text: LUX_REPLY,
+      text,
     };
 
-    setMessages((prev) => [...prev, userMessage, luxMessage]);
-    setInput("");
+    setMessages((prev) => [...prev, luxMessage]);
+    setDebugReply(text);
+    setDebugRaw(raw);
   };
 
   return (
@@ -69,6 +84,11 @@ export default function Home() {
                 ))
               )}
             </div>
+            <p>
+              DEBUG last reply: {debugReply}
+              <br />
+              DEBUG last raw: {debugRaw}
+            </p>
             <form className="composer" onSubmit={handleSubmit}>
               <input
                 type="text"
