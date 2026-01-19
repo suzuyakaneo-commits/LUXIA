@@ -8,19 +8,17 @@ type Message = {
   text: string;
 };
 
-const LUX_REPLY =
-  "Oi! Eu sou a Lux. Me diga o que você quer comprar que eu te ajudo 🙂";
-
 export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [lastReply, setLastReply] = useState("");
 
   const handleToggle = () => {
     setIsChatOpen((prev) => !prev);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = input.trim();
     if (!trimmed) return;
@@ -31,18 +29,43 @@ export default function Home() {
       text: trimmed,
     };
 
-    const luxMessage: Message = {
-      id: `${Date.now()}-lux`,
-      author: "lux",
-      text: LUX_REPLY,
-    };
-
-    setMessages((prev) => [...prev, userMessage, luxMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed }),
+      });
+      const data = (await response.json()) as { reply?: string };
+      const replyText = data.reply ?? "";
+      setLastReply(replyText);
+      const luxMessage: Message = {
+        id: `${Date.now()}-lux`,
+        author: "lux",
+        text: replyText,
+      };
+      setMessages((prev) => [...prev, luxMessage]);
+    } catch {
+      const fallback = "Erro ao obter resposta.";
+      setLastReply(fallback);
+      const luxMessage: Message = {
+        id: `${Date.now()}-lux`,
+        author: "lux",
+        text: fallback,
+      };
+      setMessages((prev) => [...prev, luxMessage]);
+    }
   };
 
   return (
     <main className="page">
+      <section className="debug-banner">
+        <p>DEBUG endpoint: /api/chat</p>
+        <p>DEBUG last reply: {lastReply || "—"}</p>
+        <p>DEBUG build: LUX_DEBUG_V1</p>
+      </section>
       <header className="hero">
         <h1>LuxAI – Demo</h1>
         <p>Lux está online</p>
