@@ -8,9 +8,6 @@ type Message = {
   text: string;
 };
 
-const LUX_REPLY =
-  "Oi! Eu sou a Lux. Me diga o que você quer comprar que eu te ajudo 🙂";
-
 export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -20,7 +17,7 @@ export default function Home() {
     setIsChatOpen((prev) => !prev);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = input.trim();
     if (!trimmed) return;
@@ -31,10 +28,19 @@ export default function Home() {
       text: trimmed,
     };
 
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: trimmed }),
+    });
+    const data = (await response.json()) as { reply: string };
+
     const luxMessage: Message = {
       id: `${Date.now()}-lux`,
       author: "lux",
-      text: LUX_REPLY,
+      text: data.reply,
     };
 
     setMessages((prev) => [...prev, userMessage, luxMessage]);
